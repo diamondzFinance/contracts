@@ -1449,7 +1449,15 @@ contract MasterChef is Ownable, ReentrancyGuard {
             }
         }
         if (_amount > 0) {
+            //Support taxed tokens
+            uint256 balanceBefore = pool.lpToken.balanceOf(address(this));
             pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
+            uint256 balanceAfter = pool.lpToken.balanceOf(address(this));
+            _amount = balanceAfter.sub(balanceBefore);
+
+            //Make sure tax isn't 100%
+            require(_amount > 0, "Amount 0 after tax");
+
             if (pool.depositFeeBP > 0) {
                 uint256 depositFee = _amount.mul(pool.depositFeeBP).div(10000);
                 pool.lpToken.safeTransfer(feeAddress, depositFee);
@@ -1523,9 +1531,4 @@ contract MasterChef is Ownable, ReentrancyGuard {
         emit UpdateEmissionRate(msg.sender, _DMDPerBlock);
     }
 
-    // Only update before start of farm
-    function updateStartBlock(uint256 _startBlock) external onlyOwner {
-	    require(startBlock > block.number, "Farm already started");
-        startBlock = _startBlock;
-    }
 }
